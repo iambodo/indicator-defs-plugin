@@ -1,0 +1,26 @@
+{
+    "name": "indicator-defs-plugin",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "d2-app-scripts build",
+        "start": "d2-app-scripts start",
+        "deploy": "d2-app-scripts deploy",
+        "test": "d2-app-scripts test"
+    },
+    "dependencies": {
+        "@dhis2/app-runtime": "^3.17.4",
+        "@dhis2/d2-i18n": "^1.2.0",
+        "@dhis2/data-engine": "^3.17.4",
+        "@dhis2/ui": "^10.19.0",
+        "prop-types": "^15.8.1",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@dhis2/cli-app-scripts": "^12.11.5"
+    },
+    "engines": {
+        "node": ">=18"
+    }
+}

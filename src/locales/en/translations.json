@@ -1,0 +1,10 @@
+{
+    "Name": "Name",
+    "Description": "Description",
+    "Indicator type": "Indicator type",
+    "Numerator": "Numerator",
+    "Denominator": "Denominator",
+    "Could not load indicator definitions": "Could not load indicator definitions",
+    "No indicators found": "No indicators found",
+    "This dashboard has no visualizations using indicators.": "This dashboard has no visualizations using indicators."
+}
