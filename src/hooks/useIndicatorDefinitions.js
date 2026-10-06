@@ -3,7 +3,7 @@ import { useDataEngine } from '@dhis2/app-runtime'
 
 const DASHBOARD_FIELDS = [
     'id',
-    'dashboardItems[id,type,visualization[id],chart[id],reportTable[id],eventChart[id],eventReport[id]]',
+    'dashboardItems[id,type,visualization[id],chart[id],reportTable[id],eventChart[id],eventReport[id],map[id]]',
 ].join(',')
 
 const VIZ_FIELDS = [
@@ -11,6 +11,11 @@ const VIZ_FIELDS = [
     'columns[dimension,items[id]]',
     'rows[dimension,items[id]]',
     'filters[dimension,items[id]]',
+].join(',')
+
+const MAP_FIELDS = [
+    'id',
+    'mapViews[dataDimensionItems[dataDimensionItemType,indicator[id]]]',
 ].join(',')
 
 const INDICATOR_FIELDS = [
@@ -43,6 +48,17 @@ function extractIndicatorIds(viz) {
     // We can't tell which is which from the viz config alone -- resolved
     // by querying the indicators resource and keeping only matches.
     return dxDim.items.map(item => item.id)
+}
+
+// Map layers reference indicators directly via dataDimensionItems, unlike
+// visualizations' dx dimension -- no need to cross-reference the indicators
+// resource to tell them apart from data elements.
+function extractIndicatorIdsFromMap(map) {
+    return (map.mapViews || [])
+        .flatMap(view => view.dataDimensionItems || [])
+        .filter(item => item.dataDimensionItemType === 'INDICATOR')
+        .map(item => item.indicator?.id)
+        .filter(Boolean)
 }
 
 // Dashboard plugins only receive `dashboardItemId`, not the parent dashboard's
@@ -136,25 +152,39 @@ export function useIndicatorDefinitions(dashboardItemId, devDashboardId) {
                 const vizIds = (dashboard.dashboardItems || [])
                     .map(extractVisualizationId)
                     .filter(Boolean)
-
-                if (vizIds.length === 0) {
-                    if (!cancelled) setState({ indicators: [], loading: false, error: null })
-                    return
-                }
-
-                const vizQuery = {}
-                vizIds.forEach((id, i) => {
-                    vizQuery[`v${i}`] = {
-                        resource: `visualizations/${id}`,
-                        params: { fields: VIZ_FIELDS },
-                    }
-                })
-                const vizResults = await engine.query(vizQuery)
+                const mapIds = (dashboard.dashboardItems || [])
+                    .map(item => item.map?.id)
+                    .filter(Boolean)
 
                 const dxIdSet = new Set()
-                Object.values(vizResults).forEach(viz => {
-                    extractIndicatorIds(viz).forEach(id => dxIdSet.add(id))
-                })
+
+                if (vizIds.length > 0) {
+                    const vizQuery = {}
+                    vizIds.forEach((id, i) => {
+                        vizQuery[`v${i}`] = {
+                            resource: `visualizations/${id}`,
+                            params: { fields: VIZ_FIELDS },
+                        }
+                    })
+                    const vizResults = await engine.query(vizQuery)
+                    Object.values(vizResults).forEach(viz => {
+                        extractIndicatorIds(viz).forEach(id => dxIdSet.add(id))
+                    })
+                }
+
+                if (mapIds.length > 0) {
+                    const mapQuery = {}
+                    mapIds.forEach((id, i) => {
+                        mapQuery[`m${i}`] = {
+                            resource: `maps/${id}`,
+                            params: { fields: MAP_FIELDS },
+                        }
+                    })
+                    const mapResults = await engine.query(mapQuery)
+                    Object.values(mapResults).forEach(map => {
+                        extractIndicatorIdsFromMap(map).forEach(id => dxIdSet.add(id))
+                    })
+                }
 
                 if (dxIdSet.size === 0) {
                     if (!cancelled) setState({ indicators: [], loading: false, error: null })
